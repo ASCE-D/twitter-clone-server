@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prismaClient } from "../../clients/db";
 import { GraphqlContext } from "../../intefaces";
 import UserService from "../../services/user";
-import TweetService, { CreateTweetPayload } from "../../services/tweet";
+import TweetService, { CreateCommentPayload, CreateTweetPayload } from "../../services/tweet";
 
 const s3Client = new S3Client({
   region: process.env.AWS_DEFAULT_REGION,
@@ -61,6 +61,19 @@ const mutations = {
     });
 
     return tweet;
+  },
+    createComment: async (
+    parent: any,
+    { payload }: { payload: CreateCommentPayload },
+    ctx: GraphqlContext
+  ) => {
+    if (!ctx.user) throw new Error("You are not authenticated");
+    const comment = await TweetService.createComment({
+      ...payload,
+      userId: ctx.user.id,
+    });
+
+    return comment;
   },
   likeTweet: async (
     parent: any,

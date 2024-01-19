@@ -7,6 +7,12 @@ export interface CreateTweetPayload {
   imageURL?: string;
   userId: string;
 }
+export interface CreateCommentPayload {
+  content: string;
+  imageURL?: string;
+  userId: string;
+  tweetId: string;
+}
 
 class TweetService {
   public static async createTweet(data: CreateTweetPayload) {
@@ -23,66 +29,66 @@ class TweetService {
     });
     await redisClient.setex(`RATE_LIMIT:TWEET:${data.userId}`, 10, 1);
     await redisClient.del("ALL_TWEETS");
+    console.log("tweet",tweet);
     return tweet;
+  }
+  public static async createComment(data: CreateCommentPayload) {
+    const rateLimitFlag = await redisClient.get(
+      `RATE_LIMIT:TWEET:${data.userId}`
+    );
+    if (rateLimitFlag) throw new Error("Please wait....");
+    const comment = await prismaClient.commentTweet.create({
+      data: {
+        content: data.content,
+        imageURL: data.imageURL,
+        User: { connect: { id: data.userId } },
+        tweet: { connect: { id: data.tweetId } }
+      },
+    });
+    await redisClient.setex(`RATE_LIMIT:COMMENT:${data.userId}`, 10, 1);
+    await redisClient.del("ALL_TWEETS");
+    console.log("comment",comment);
+    return comment;
   }
 
   public static async getAllTweets(userId: string | null) {
     const cachedTweets = await redisClient.get("ALL_TWEETS");
     if (cachedTweets) return JSON.parse(cachedTweets);
+
     const currentUserId = userId;
-    console.log("userID: ", userId);
+
     const tweets = await prismaClient.tweet.findMany({
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         content: true,
+        imageURL: true,
         createdAt: true,
-        _count: { select: { likes: true }},
-        likes: !userId ? false : { where: { userId: currentUserId}},
+        _count: { select: { likes: true, comments: true } },
+        likes: !userId ? false : { where: { userId: currentUserId } },
         author: {
-          select: { firstName: true, id: true, profileImageURL: true}
-        }
-      }
+          select: { firstName: true, id: true, profileImageURL: true },
+        },
+      },
     });
-    console.log("tweets", tweets[0].likes);
 
-    // if (userId) {
-    //  const likedTweetIds = await prismaClient.likedTweet
-    //    .findMany({
-    //      where: {
-    //        userId,
-    //        tweetId: {
-    //          in: tweets.map((tweet) => tweet.id),
-    //        },
-    //      },
-    //    })
-    //    .then((likes) => likes.map((like) => like.tweetId));
+    const formattedTweets = tweets.map((tweet) => {
+      return {
+        id: tweet.id,
+        content: tweet.content,
+        createdAt: tweet.createdAt,
+        imageURL: tweet.imageURL,
+        likeCount: tweet._count.likes,
+        commentCount: tweet._count.comments,
+        user: tweet.author,
+        likedByMe: tweet.likes?.length > 0,
+      };
+    });
 
-    //  const tweetsWithLikedStatus = tweets.map((tweet) => ({
-    //    ...tweet,
-    //    isLiked: likedTweetIds.includes(tweet.id),
-    //  }));
-    //   await redisClient.set(
-    //     "ALL_TWEETS",
-    //     JSON.stringify(tweetsWithLikedStatus)
-    //   );
-    //   return tweetsWithLikedStatus;
-    // } else {
-    //   await redisClient.set("ALL_TWEETS", JSON.stringify(tweets));
-    //   return tweets;
-    // }
-      return tweets.map((tweet) => {
-          return {
-            id: tweet.id,
-            content: tweet.content,
-            createdAt: tweet.createdAt,
-            profileImageURL: tweet.author.profileImageURL,
-            likeCount: tweet._count.likes,
-            user: tweet.author,
-            likedByMe: tweet.likes?.length > 0,
-          };
-        });
-        
+    // Set the data in the Redis cache
+    await redisClient.set("ALL_TWEETS", JSON.stringify(formattedTweets));
+
+    return formattedTweets;
   }
 
   public static async likeTweet(tweetId: string, userId: string) {

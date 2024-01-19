@@ -8,13 +8,29 @@ export const types = `#graphql
     type Tweet {
         id: ID!
         content: String! 
-        profileImageURL: String 
+        imageURL: String 
         likeCount: Int
+        commentCount: Int
         user: User
         likedByMe: Boolean
     }
 
     type Like {
         addedLike: Boolean
+    }
+
+    input CreateCommentData {
+        content: String!
+        imageURL: String
+        tweetId: String!
+    }
+
+    type Comment {
+        id: ID!
+        content: String!
+        User: User
+        imageURL: String
+        commentCount: Int
+        userId: ID
     }
 `;
