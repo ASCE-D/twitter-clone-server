@@ -94,6 +94,7 @@ const mutations = {
 const extraResolvers = {
   Tweet: {
     author: (parent: Tweet) => UserService.getUserById(parent.authorId),
+    comments: (parent: Tweet) => TweetService.getCommentsByTweetId(parent.id),
     likeCount: (parent: Tweet) => TweetService.getLikeCount(parent.id),
   },
 };

@@ -13,6 +13,7 @@ export const types = `#graphql
         commentCount: Int
         user: User
         likedByMe: Boolean
+        comments: [Comment]
     }
 
     type Like {
@@ -28,7 +29,7 @@ export const types = `#graphql
     type Comment {
         id: ID!
         content: String!
-        User: User
+        username: String
         imageURL: String
         commentCount: Int
         userId: ID

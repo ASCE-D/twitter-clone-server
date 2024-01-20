@@ -29,7 +29,7 @@ class TweetService {
     });
     await redisClient.setex(`RATE_LIMIT:TWEET:${data.userId}`, 10, 1);
     await redisClient.del("ALL_TWEETS");
-    console.log("tweet",tweet);
+    console.log("tweet", tweet);
     return tweet;
   }
   public static async createComment(data: CreateCommentPayload) {
@@ -42,12 +42,12 @@ class TweetService {
         content: data.content,
         imageURL: data.imageURL,
         User: { connect: { id: data.userId } },
-        tweet: { connect: { id: data.tweetId } }
+        tweet: { connect: { id: data.tweetId } },
       },
     });
     await redisClient.setex(`RATE_LIMIT:COMMENT:${data.userId}`, 10, 1);
     await redisClient.del("ALL_TWEETS");
-    console.log("comment",comment);
+    console.log("comment", comment);
     return comment;
   }
 
@@ -138,6 +138,27 @@ class TweetService {
     });
 
     return likes.length;
+  }
+  public static async getCommentsByTweetId(id: string) {
+    const comments = await prismaClient.commentTweet.findMany({
+      where: { tweetId: id },
+    });
+
+    // console.log(comments);
+
+    const commentsWithUsername = await Promise.all(
+      comments.map(async (comment) => {
+        const user = await prismaClient.user.findUnique({
+          where: { id: comment.userId },
+        });
+        return {
+          ...comment,
+          username: user?.firstName || null,
+        };
+      })
+    );
+
+    return commentsWithUsername;
   }
 }
 
