@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node build/index",
     "build": "tsc -p .",
-    "dev": "tsc-watch --onSuccess \"npm start\""
+    "dev": "tsc-watch --onSuccess \"npm start\"",
+    "prod": "tsc -p . && node build/index"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
