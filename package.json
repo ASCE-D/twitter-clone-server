@@ -4,15 +4,23 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node build/index",
-    "build": "tsc -p .",
-    "dev": "tsc-watch --onSuccess \"npm start\"",
-    "prod": "tsc -p . && npx prisma generate && node build/index"
+    "start": "nodemon src/index.ts",
+    "build": "rimraf build && tsc",
+    "ts.check": "tsc --project tsconfig.json",
+    "add-build": "git add build",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "pre-commit": [
+    "ts.check",
+    "build",
+    "add-build"
+  ],
   "devDependencies": {
     "@types/cors": "^2.8.13",
     "@types/jsonwebtoken": "^9.0.2",
+    "pre-commit": "^1.2.2",
     "prisma": "^4.13.0",
+    "rimraf": "^5.0.5",
     "tsc-watch": "^6.0.4",
     "typescript": "^5.0.4"
   },
@@ -28,6 +36,7 @@
     "express": "^4.18.2",
     "graphql": "^16.6.0",
     "ioredis": "^5.3.2",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "nodemon": "^3.1.0"
   }
 }
